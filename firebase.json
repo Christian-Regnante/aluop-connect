@@ -1,0 +1,23 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "alu-connect-project",
+                    "appId": "1:245171599369:android:5d3a36edd10411b3cfa0d8",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "alu-connect-project",
+                    "configurations": {
+                        "android": "1:245171599369:android:5d3a36edd10411b3cfa0d8",
+                        "web": "1:245171599369:web:cdc112e766f25d17cfa0d8",
+                        "windows": "1:245171599369:web:a51449f26011468acfa0d8"
+                    }
+                }
+            }
+        }
+    }
+}
