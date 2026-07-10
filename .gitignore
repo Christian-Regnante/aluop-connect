@@ -13,6 +13,9 @@
 migrate_working_dir/
 lib/
 
+# For the mean time avoid pushing the google_service.json file which contain the google API key
+
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -44,3 +47,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+/android/app/google-services.json
