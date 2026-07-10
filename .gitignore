@@ -11,9 +11,11 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+
 lib/
 
 # For the mean time avoid pushing the google_service.json file which contain the google API key
+/android/app/google-services.json
 
 
 # IntelliJ related
@@ -49,4 +51,3 @@ app.*.map.json
 /android/app/release
 
 
-/android/app/google-services.json
