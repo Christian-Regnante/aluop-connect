@@ -4,17 +4,17 @@ import '../../../../core/theme/app_colors.dart';
 class FilterChipList extends StatelessWidget {
   final String selectedFilter;
   final ValueChanged<String> onFilterChanged;
+  final List<String> filters;
 
   const FilterChipList({
     super.key,
     required this.selectedFilter,
     required this.onFilterChanged,
+    required this.filters,
   });
 
   @override
   Widget build(BuildContext context) {
-    final filters = ['All Missions', 'Conservation', 'Health', 'FinTech', 'Education'];
-
     return SizedBox(
       height: 36,
       child: ListView.separated(

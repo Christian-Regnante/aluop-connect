@@ -39,6 +39,146 @@ class _StudentEvaluationScreenState extends ConsumerState<StudentEvaluationScree
     final employerId = employer?.uid ?? 'lumen-energy-uid';
     final employerAppsAsync = ref.watch(employerApplicationsProvider(employerId));
 
+    // Extract currentApp reactively to use in bottomNavigationBar
+    final currentApp = employerAppsAsync.value?.firstWhere(
+      (app) => app.studentId == widget.studentId,
+      orElse: () => ApplicationModel(
+        id: '',
+        opportunityId: '',
+        studentId: widget.studentId,
+        coverLetter: 'No fit statement provided.',
+        portfolioUrl: '',
+        resumeUrl: '',
+        status: 'Applied',
+        appliedAt: DateTime.now(),
+      ),
+    );
+
+    // Setup sticky bottom navigation bar actions
+    final bottomBar = currentApp == null || currentApp.id.isEmpty
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Reject button
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      try {
+                        await ref.read(applicationServiceProvider).updateApplicationStatus(currentApp.id, 'Closed');
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(content: Text('Candidate Rejected.')),
+                        );
+                        navigator.pop();
+                      } catch (e) {
+                        debugPrint('Error rejecting application: $e');
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(
+                      'Reject',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Interview button
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      try {
+                        await ref.read(applicationServiceProvider).updateApplicationStatus(currentApp.id, 'Interview');
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(content: Text('Candidate moved to Interview stage!')),
+                        );
+                        navigator.pop();
+                      } catch (e) {
+                        debugPrint('Error moving application to interview: $e');
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(
+                      'Interview',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Accept button
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      try {
+                        await ref.read(applicationServiceProvider).updateApplicationStatus(currentApp.id, 'Accepted');
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(content: Text('Candidate Accepted successfully!')),
+                        );
+                        navigator.pop();
+                      } catch (e) {
+                        debugPrint('Error accepting application: $e');
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(
+                      'Accept',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -77,6 +217,7 @@ class _StudentEvaluationScreenState extends ConsumerState<StudentEvaluationScree
           ),
         ],
       ),
+      bottomNavigationBar: bottomBar,
       body: studentUserAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
         error: (err, stack) => Center(child: Text('Error loading student: $err')),
@@ -97,7 +238,7 @@ class _StudentEvaluationScreenState extends ConsumerState<StudentEvaluationScree
                 loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (err, stack) => Center(child: Text('Error loading applications: $err')),
                 data: (employerApps) {
-                  final currentApp = employerApps.firstWhere(
+                  final activeApp = employerApps.firstWhere(
                     (app) => app.studentId == widget.studentId,
                     orElse: () => ApplicationModel(
                       id: '',
@@ -111,9 +252,9 @@ class _StudentEvaluationScreenState extends ConsumerState<StudentEvaluationScree
                     ),
                   );
 
-                  // Setup initials notes controller text if it is empty and notes are not empty
-                  if (_feedbackController.text.isEmpty && currentApp.internalNotes.isNotEmpty) {
-                    _feedbackController.text = currentApp.internalNotes;
+                  // Setup notes controller text
+                  if (_feedbackController.text.isEmpty && activeApp.internalNotes.isNotEmpty) {
+                    _feedbackController.text = activeApp.internalNotes;
                   }
 
                   final initials = _getInitials(studentUser.fullName);
@@ -131,598 +272,434 @@ class _StudentEvaluationScreenState extends ConsumerState<StudentEvaluationScree
 
                   final degreeText = '$majorDetails • Class of ${profile.expectedGradYear}';
 
-                  return Stack(
-                    children: [
-                      SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 100.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 1. Profile Header Card
-                            Container(
-                              width: double.infinity,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [AppColors.primary, Color(0xFFFDF8F8)],
-                                  stops: [0.35, 0.35],
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Profile Header Card
+                        Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [AppColors.primary, Color(0xFFFDF8F8)],
+                              stops: [0.35, 0.35],
                                 ),
+                          ),
+                          child: Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                              padding: const EdgeInsets.all(20.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                  )
+                                ],
                               ),
-                              child: Center(
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                                  padding: const EdgeInsets.all(20.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 10,
-                                        offset: Offset(0, 4),
-                                      )
+                              child: Column(
+                                children: [
+                                  // Large Initials Avatar
+                                  Stack(
+                                    alignment: Alignment.bottomRight,
+                                    children: [
+                                      Container(
+                                        width: 90,
+                                        height: 90,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFFF0F0),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: AppColors.primary, width: 2.0),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            initials,
+                                            style: const TextStyle(
+                                              color: AppColors.primary,
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 2,
+                                        right: 2,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF27AE60),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.white, width: 1.5),
+                                          ),
+                                          child: const Text(
+                                            'ACTIVE',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                  child: Column(
+                                  const SizedBox(height: 12),
+                                  // Name
+                                  Text(
+                                    studentUser.fullName,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Degree / Major Info
+                                  Text(
+                                    degreeText,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Location representation tag
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      // Large Avatar with Standing letters of name
-                                      Stack(
-                                        alignment: Alignment.bottomRight,
-                                        children: [
-                                          Container(
-                                            width: 90,
-                                            height: 90,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFFFF0F0),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(color: AppColors.primary, width: 2.0),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                initials,
-                                                style: const TextStyle(
-                                                  color: AppColors.primary,
-                                                  fontSize: 28,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            bottom: 2,
-                                            right: 2,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF27AE60),
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: Colors.white, width: 1.5),
-                                              ),
-                                              child: const Text(
-                                                'ACTIVE',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      // Name
+                                      const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 16),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        studentUser.fullName,
+                                        locationText,
                                         style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
                                           color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      // Degree / Major Info
-                                      Text(
-                                        degreeText,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      // Location representation tag
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 16),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            locationText,
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Download Resume link row
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: OutlinedButton.icon(
-                                              onPressed: () async {
-                                                final links = currentApp.resumeUrl
-                                                    .split(',')
-                                                    .map((e) => e.trim())
-                                                    .where((e) => e.isNotEmpty)
-                                                    .toList();
-                                                if (links.isNotEmpty) {
-                                                  final uri = Uri.parse(links.first);
-                                                  if (await canLaunchUrl(uri)) {
-                                                    await launchUrl(uri);
-                                                  } else {
-                                                    if (context.mounted) {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        SnackBar(content: Text('Could not launch ${links.first}')),
-                                                      );
-                                                    }
-                                                  }
-                                                } else {
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Download Resume link row
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final links = activeApp.resumeUrl
+                                                .split(',')
+                                                .map((e) => e.trim())
+                                                .where((e) => e.isNotEmpty)
+                                                .toList();
+                                            if (links.isNotEmpty) {
+                                              final uri = Uri.parse(links.first);
+                                              if (await canLaunchUrl(uri)) {
+                                                await launchUrl(uri);
+                                              } else {
+                                                if (context.mounted) {
                                                   ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text('No resume link submitted.')),
+                                                    SnackBar(content: Text('Could not launch ${links.first}')),
                                                   );
                                                 }
-                                              },
-                                              style: OutlinedButton.styleFrom(
-                                                side: const BorderSide(color: AppColors.border),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(20),
-                                                ),
-                                              ),
-                                              icon: const Icon(Icons.download, size: 14, color: AppColors.textPrimary),
-                                              label: const Text(
-                                                'Download Resume',
-                                                style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
-                                              ),
+                                              }
+                                            } else {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('No resume link submitted.')),
+                                              );
+                                            }
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(color: AppColors.border),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(20),
                                             ),
                                           ),
-                                        ],
+                                          icon: const Icon(Icons.download, size: 14, color: AppColors.textPrimary),
+                                          label: const Text(
+                                            'Download Resume',
+                                            style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-                            ),
-
-                            // 2. Sub-tabs bar
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildSubTab('Profile View', 0),
-                                  _buildSubTab('Application Details', 1),
-                                  _buildSubTab('Internal Notes', 2),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 16),
+                          ),
+                        ),
 
-                            // 3. Tab Contents
-                            if (_activeSubTab == 0) ...[
-                              // Academy Metrics
-                              _buildSectionCard(
-                                icon: Icons.school_outlined,
-                                title: 'Academy Metrics',
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        // 2. Sub-tabs bar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildSubTab('Profile View', 0),
+                              _buildSubTab('Application Details', 1),
+                              _buildSubTab('Internal Notes', 2),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 3. Tab Contents
+                        if (_activeSubTab == 0) ...[
+                          // Academy Metrics
+                          _buildSectionCard(
+                            icon: Icons.school_outlined,
+                            title: 'Academy Metrics',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF6F6),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Cumulative GPA',
+                                        style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        '${profile.gpa.toStringAsFixed(2)} / 4.0',
+                                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE0F2F1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            const Text('LEADERSHIP', style: TextStyle(color: Colors.teal, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            const SizedBox(height: 4),
+                                            Text(profile.leadershipGrade, style: const TextStyle(color: Colors.teal, fontSize: 18, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE8F4FD),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            const Text('ATTENDANCE', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            const SizedBox(height: 4),
+                                            Text('${profile.attendancePercentage.toStringAsFixed(0)}%', style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Technical Matrix
+                          _buildSectionCard(
+                            icon: Icons.grid_view_outlined,
+                            title: 'Technical Matrix',
+                            child: Column(
+                              children: [
+                                if (profile.skills.isEmpty && profile.languages.isEmpty)
+                                  const Center(
+                                    child: Text(
+                                      'No skills or languages listed.',
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                    ),
+                                  ),
+                                ...profile.skills.map((skill) => _buildSkillProgress(skill, 'Technical Skill', 0.85)),
+                                ...profile.languages.map((lang) => _buildSkillProgress(lang, 'Language', 0.90)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Mission Alignment Hubs
+                          _buildSectionCard(
+                            icon: Icons.check_circle_outline,
+                            title: 'Mission Alignment Hubs',
+                            child: profile.missionAlignmentHubs.isEmpty
+                                ? const Text('No mission alignment hubs selected.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
+                                : Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: profile.missionAlignmentHubs.map((hub) => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF6F6),
+                                        color: const Color(0xFFFFF0F0),
                                         borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFFFFD5D5), width: 1),
                                       ),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Text(
-                                            'Cumulative GPA',
-                                            style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
-                                          ),
+                                          const Icon(Icons.hub_outlined, color: AppColors.primary, size: 12),
+                                          const SizedBox(width: 4),
                                           Text(
-                                            '${profile.gpa.toStringAsFixed(2)} / 4.0',
-                                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 18),
+                                            hub,
+                                            style: const TextStyle(
+                                              color: AppColors.primary,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(14),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFE0F2F1),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                const Text('LEADERSHIP', style: TextStyle(color: Colors.teal, fontSize: 10, fontWeight: FontWeight.bold)),
-                                                const SizedBox(height: 4),
-                                                Text(profile.leadershipGrade, style: const TextStyle(color: Colors.teal, fontSize: 18, fontWeight: FontWeight.bold)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(14),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFE8F4FD),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                const Text('ATTENDANCE', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
-                                                const SizedBox(height: 4),
-                                                Text('${profile.attendancePercentage.toStringAsFixed(0)}%', style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
+                                    )).toList(),
+                                  ),
+                          ),
+                          const SizedBox(height: 16),
 
-                              // Technical Matrix (Dynamic)
-                              _buildSectionCard(
-                                icon: Icons.grid_view_outlined,
-                                title: 'Technical Matrix',
-                                child: Column(
-                                  children: [
-                                    if (profile.skills.isEmpty && profile.languages.isEmpty)
-                                      const Center(
-                                        child: Text(
-                                          'No skills or languages listed.',
-                                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                                        ),
-                                      ),
-                                    ...profile.skills.map((skill) => _buildSkillProgress(skill, 'Technical Skill', 0.85)),
-                                    ...profile.languages.map((lang) => _buildSkillProgress(lang, 'Language', 0.90)),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Mission Alignment Hubs
-                              _buildSectionCard(
-                                icon: Icons.check_circle_outline,
-                                title: 'Mission Alignment Hubs',
-                                child: profile.missionAlignmentHubs.isEmpty
-                                    ? const Text('No mission alignment hubs selected.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
-                                    : Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: profile.missionAlignmentHubs.map((hub) => Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFFFF0F0),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: const Color(0xFFFFD5D5), width: 1),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.hub_outlined, color: AppColors.primary, size: 12),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                hub,
-                                                style: const TextStyle(
-                                                  color: AppColors.primary,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )).toList(),
-                                      ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Opportunity Interests
-                              _buildSectionCard(
-                                icon: Icons.work_outline,
-                                title: 'Opportunity Interests',
-                                child: profile.opportunityInterests.isEmpty
-                                    ? const Text('No interests selected.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
-                                    : Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: profile.opportunityInterests.map((interest) => Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFE8F4FD),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: const Color(0xFFC2E2FB), width: 1),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.star_border, color: Colors.blue, size: 12),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                interest,
-                                                style: const TextStyle(
-                                                  color: Colors.blue,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )).toList(),
-                                      ),
-                              ),
-                            ] else if (_activeSubTab == 1) ...[
-                              // Application Details
-                              _buildSectionCard(
-                                icon: Icons.assignment_outlined,
-                                title: 'Application Details',
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Fit & Motivation Statement:',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
+                          // Opportunity Interests
+                          _buildSectionCard(
+                            icon: Icons.work_outline,
+                            title: 'Opportunity Interests',
+                            child: profile.opportunityInterests.isEmpty
+                                ? const Text('No interests selected.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
+                                : Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: profile.opportunityInterests.map((interest) => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF6F6),
+                                        color: const Color(0xFFE8F4FD),
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFFFDE8E8)),
+                                        border: Border.all(color: const Color(0xFFC2E2FB), width: 1),
                                       ),
-                                      child: Text(
-                                        currentApp.coverLetter.trim().isEmpty ? 'No statement provided.' : currentApp.coverLetter,
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.star_border, color: Colors.blue, size: 12),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            interest,
+                                            style: const TextStyle(
+                                              color: Colors.blue,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'Projects/Portfolio Link:',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    if (currentApp.portfolioUrl.isNotEmpty)
-                                      InkWell(
-                                        onTap: () async {
-                                          final uri = Uri.parse(currentApp.portfolioUrl);
-                                          if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri);
-                                          }
-                                        },
-                                        child: Text(
-                                          currentApp.portfolioUrl,
-                                          style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontSize: 12, fontWeight: FontWeight.bold),
-                                        ),
-                                      )
-                                    else
-                                      const Text('No projects link submitted.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'Supporting Documents Links:',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    ..._buildDocumentsList(currentApp.resumeUrl),
-                                  ],
-                                ),
-                              ),
-                            ] else ...[
-                              // Internal Notes
-                              _buildSectionCard(
-                                icon: Icons.lock_outline,
-                                title: 'Internal Notes',
-                                badge: 'CONFIDENTIAL',
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Add private notes for the hiring committee:',
-                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    TextField(
-                                      controller: _feedbackController,
-                                      maxLines: 4,
-                                      decoration: InputDecoration(
-                                        hintText: 'e.g. Candidate demonstrated strong skillsets but lacks deep frontend knowledge.',
-                                        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                                        fillColor: Colors.grey[50],
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: const BorderSide(color: AppColors.border),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: const BorderSide(color: AppColors.primary),
-                                        ),
-                                      ),
-                                      onChanged: (val) async {
-                                        if (currentApp.id.isNotEmpty) {
-                                          await ref.read(applicationServiceProvider).updateApplicationNotes(currentApp.id, val.trim());
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 40),
-                          ],
-                        ),
-                      ),
-
-                      // 5. Sticky Bottom Action Bar
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, -5),
-                              ),
-                            ],
+                                    )).toList(),
+                                  ),
                           ),
-                          child: Row(
-                            children: [
-                              // Reject button
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () async {
-                                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                    final navigator = Navigator.of(context);
-                                    if (currentApp.id.isEmpty) {
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(content: Text('No active application found.')),
-                                      );
-                                      return;
-                                    }
-                                    try {
-                                      await ref.read(applicationServiceProvider).updateApplicationStatus(currentApp.id, 'Closed');
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(content: Text('Candidate Rejected.')),
-                                      );
-                                      navigator.pop();
-                                    } catch (e) {
-                                      debugPrint('Error rejecting application: $e');
-                                    }
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.red, width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                        ] else if (_activeSubTab == 1) ...[
+                          // Application Details
+                          _buildSectionCard(
+                            icon: Icons.assignment_outlined,
+                            title: 'Application Details',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Fit & Motivation Statement:',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF6F6),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFFDE8E8)),
                                   ),
-                                  child: const Text(
-                                    'Reject',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
+                                  child: Text(
+                                    activeApp.coverLetter.trim().isEmpty ? 'No statement provided.' : activeApp.coverLetter,
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.4),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Interview button
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () async {
-                                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                    final navigator = Navigator.of(context);
-                                    if (currentApp.id.isEmpty) {
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(content: Text('No active application found.')),
-                                      );
-                                      return;
-                                    }
-                                    try {
-                                      await ref.read(applicationServiceProvider).updateApplicationStatus(currentApp.id, 'Interview');
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(content: Text('Candidate moved to Interview stage!')),
-                                      );
-                                      navigator.pop();
-                                    } catch (e) {
-                                      debugPrint('Error moving application to interview: $e');
-                                    }
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                  ),
-                                  child: const Text(
-                                    'Interview',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Projects/Portfolio Links:',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Accept button
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                    final navigator = Navigator.of(context);
-                                    if (currentApp.id.isEmpty) {
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(content: Text('No active application found.')),
-                                      );
-                                      return;
-                                    }
-                                    try {
-                                      await ref.read(applicationServiceProvider).updateApplicationStatus(currentApp.id, 'Accepted');
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(content: Text('Candidate Accepted successfully!')),
-                                      );
-                                      navigator.pop();
-                                    } catch (e) {
-                                      debugPrint('Error accepting application: $e');
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                  ),
-                                  child: const Text(
-                                    'Accept',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                const SizedBox(height: 6),
+                                ..._buildPortfolioLinksList(activeApp.portfolioUrl),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Supporting Documents Links:',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 6),
+                                ..._buildDocumentsList(activeApp.resumeUrl),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ] else ...[
+                          // Internal Notes
+                          _buildSectionCard(
+                            icon: Icons.lock_outline,
+                            title: 'Internal Notes',
+                            badge: 'CONFIDENTIAL',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Add private notes for the hiring committee:',
+                                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                ),
+                                const SizedBox(height: 10),
+                                TextField(
+                                  controller: _feedbackController,
+                                  maxLines: 4,
+                                  decoration: InputDecoration(
+                                    hintText: 'e.g. Candidate demonstrated strong skillsets but lacks deep frontend knowledge.',
+                                    hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                    fillColor: Colors.grey[50],
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(color: AppColors.border),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(color: AppColors.primary),
+                                    ),
+                                  ),
+                                  onChanged: (val) async {
+                                    if (activeApp.id.isNotEmpty) {
+                                      await ref.read(applicationServiceProvider).updateApplicationNotes(activeApp.id, val.trim());
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   );
                 },
               );
@@ -731,6 +708,42 @@ class _StudentEvaluationScreenState extends ConsumerState<StudentEvaluationScree
         },
       ),
     );
+  }
+
+  List<Widget> _buildPortfolioLinksList(String portfolioUrl) {
+    if (portfolioUrl.trim().isEmpty) {
+      return [const Text('No projects link submitted.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))];
+    }
+    final links = portfolioUrl.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (links.isEmpty) {
+      return [const Text('No projects link submitted.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))];
+    }
+    return links.map((link) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: InkWell(
+          onTap: () async {
+            final uri = Uri.parse(link);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri);
+            }
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.launch, size: 14, color: Colors.blue),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  link,
+                  style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontSize: 12, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }).toList();
   }
 
   List<Widget> _buildDocumentsList(String resumeUrl) {

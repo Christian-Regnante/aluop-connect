@@ -6,6 +6,7 @@ import '../../../../core/models/opportunity_model.dart';
 import '../../../../core/services/opportunity_service.dart';
 import '../../../../core/services/employer_service.dart';
 import '../../../auth/providers/auth_providers.dart';
+import '../widgets/employer_home_header.dart';
 
 class PostEngineScreen extends ConsumerStatefulWidget {
   const PostEngineScreen({super.key});
@@ -212,41 +213,7 @@ class _PostEngineScreenState extends ConsumerState<PostEngineScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Top Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Row(
-                children: [
-                  Text(
-                    'AluOp-Connect',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFDE8E8),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'JD',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const EmployerHomeHeader(),
 
             // Scrollable Content
             Expanded(

@@ -6,6 +6,7 @@ import '../../../../core/services/application_service.dart';
 import '../../../../core/services/opportunity_service.dart';
 import '../../../../core/models/application_model.dart';
 import '../../../auth/providers/auth_providers.dart';
+import '../widgets/employer_home_header.dart';
 
 class ApplicantReviewHubScreen extends ConsumerStatefulWidget {
   const ApplicantReviewHubScreen({super.key});
@@ -29,62 +30,7 @@ class _ApplicantReviewHubScreenState extends ConsumerState<ApplicantReviewHubScr
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Top Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF0F0),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 1.5),
-                    ),
-                    child: Center(
-                      child: Text(
-                        user != null ? _getInitials(user.fullName) : 'AO',
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AluOp-Connect',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              height: 1.0,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Hiring Dashboard',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.notifications_none,
-                    size: 26,
-                    color: AppColors.textPrimary,
-                  ),
-                ],
-              ),
-            ),
+            const EmployerHomeHeader(),
 
             // 2. Section Title
             Padding(

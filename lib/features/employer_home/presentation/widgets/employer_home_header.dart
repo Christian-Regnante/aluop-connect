@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/employer_service.dart';
 import '../../../auth/providers/auth_providers.dart';
 
 class EmployerHomeHeader extends ConsumerWidget {
@@ -9,98 +9,100 @@ class EmployerHomeHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+    final uid = user?.uid ?? 'lumen-energy-uid';
+    final profileAsync = ref.watch(employerProfileStreamProvider(uid));
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Row(
-              children: [
-                // Logo Box
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E212D), // Dark blue/black
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
+          const Icon(
+            Icons.wb_sunny_outlined,
+            color: AppColors.primary,
+            size: 26,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'AluOp-Connect',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
                 ),
-                const SizedBox(width: 8),
-                const Expanded(
+          ),
+          const Spacer(),
+          const Icon(
+            Icons.notifications_none,
+            size: 26,
+            color: AppColors.textPrimary,
+          ),
+          const SizedBox(width: 16),
+          profileAsync.when(
+            loading: () => Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5),
+                ),
+              ),
+            ),
+            error: (err, stack) => Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  'AO',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            data: (profile) {
+              final orgName = profile?.orgName ?? user?.fullName ?? 'Lumen-Energy';
+              final initials = _getInitials(orgName);
+
+              return Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
                   child: Text(
-                    'AluOp-Connect',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 18,
+                    initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Icon(Icons.notifications_none, size: 24, color: AppColors.primary),
-                  Positioned(
-                    top: 2,
-                    right: 4,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(Icons.logout, color: AppColors.primary, size: 22),
-                onPressed: () async {
-                  await ref.read(authServiceProvider).signOut();
-                  if (context.mounted) {
-                    context.go('/auth/sign-in');
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary, width: 2),
-                ),
-                child: const CircleAvatar(
-                  radius: 16,
-                  backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80'), // Placeholder businessman
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ],
       ),
     );
   }
+}
+
+String _getInitials(String name) {
+  final words = name.trim().split(RegExp(r'\s+'));
+  if (words.isEmpty) return 'EM';
+  if (words.length == 1) {
+    return words[0].length >= 2 ? words[0].substring(0, 2).toUpperCase() : words[0].toUpperCase();
+  }
+  return '${words[0][0]}${words[1][0]}'.toUpperCase();
 }
