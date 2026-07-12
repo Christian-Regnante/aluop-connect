@@ -19,7 +19,9 @@ class _ApplicantReviewHubScreenState extends ConsumerState<ApplicantReviewHubScr
 
   @override
   Widget build(BuildContext context) {
-    final appsAsync = ref.watch(allApplicationsProvider);
+    final user = ref.watch(currentUserProvider).value;
+    final employerId = user?.uid ?? 'lumen-energy-uid';
+    final appsAsync = ref.watch(employerApplicationsProvider(employerId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -33,14 +35,21 @@ class _ApplicantReviewHubScreenState extends ConsumerState<ApplicantReviewHubScr
               child: Row(
                 children: [
                   Container(
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0F0),
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.primary, width: 1.5),
                     ),
-                    child: const CircleAvatar(
-                      radius: 18,
-                      backgroundImage: NetworkImage(
-                        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+                    child: Center(
+                      child: Text(
+                        user != null ? _getInitials(user.fullName) : 'AO',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),

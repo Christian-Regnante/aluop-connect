@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/application_model.dart';
+import './opportunity_service.dart';
 
 class ApplicationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -82,4 +83,28 @@ final allApplicationsProvider = StreamProvider<List<ApplicationModel>>((ref) {
   return FirebaseFirestore.instance.collection('applications').snapshots().map((snapshot) {
     return snapshot.docs.map((doc) => ApplicationModel.fromJson(doc.data())).toList();
   });
+});
+
+final employerApplicationsProvider = StreamProvider.family<List<ApplicationModel>, String>((ref, employerId) {
+  final opportunitiesAsync = ref.watch(employerOpportunitiesProvider(employerId));
+  
+  return opportunitiesAsync.when(
+    loading: () => Stream.value(<ApplicationModel>[]),
+    error: (err, stack) => Stream.value(<ApplicationModel>[]),
+    data: (opps) {
+      final oppIds = opps.map((o) => o.id).toSet();
+      if (oppIds.isEmpty) {
+        return Stream.value(<ApplicationModel>[]);
+      }
+      return FirebaseFirestore.instance
+          .collection('applications')
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs
+            .map((doc) => ApplicationModel.fromJson(doc.data()))
+            .where((app) => oppIds.contains(app.opportunityId))
+            .toList();
+      });
+    },
+  );
 });
