@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/employer_profile_model.dart';
 import '../../../../core/services/employer_service.dart';
@@ -87,6 +88,8 @@ class _EmployerProfileSetupScreenState extends ConsumerState<EmployerProfileSetu
   // Step 3 Controllers & States
   final _hqController = TextEditingController();
   final _linkedinController = TextEditingController();
+  final _verificationCodeController = TextEditingController();
+  String? _verificationError;
   
   // Leadership list starts empty
   final List<Map<String, String>> _members = [];
@@ -105,6 +108,7 @@ class _EmployerProfileSetupScreenState extends ConsumerState<EmployerProfileSetu
     _linkedinController.dispose();
     _memberNameController.dispose();
     _memberRoleController.dispose();
+    _verificationCodeController.dispose();
     super.dispose();
   }
 
@@ -119,6 +123,7 @@ class _EmployerProfileSetupScreenState extends ConsumerState<EmployerProfileSetu
       _hqError = null;
       _linkedinError = null;
       _leadershipError = null;
+      _verificationError = null;
     });
 
     if (_currentStep == 1) {
@@ -177,6 +182,34 @@ class _EmployerProfileSetupScreenState extends ConsumerState<EmployerProfileSetu
         _leadershipError = 'Please add at least one core leadership member';
         hasError = true;
       }
+      if (_verificationCodeController.text.trim().isEmpty) {
+        _verificationError = 'Verification code is required';
+        hasError = true;
+      }
+
+      if (!hasError) {
+        try {
+          final docRef = FirebaseFirestore.instance.collection('admin_configs').doc('verification');
+          final docSnap = await docRef.get();
+          String correctCode = 'ALU-9283-2833';
+          if (!docSnap.exists) {
+            await docRef.set({'code': correctCode});
+          } else {
+            correctCode = docSnap.data()?['code'] ?? 'ALU-9283-2833';
+          }
+
+          if (_verificationCodeController.text.trim() != correctCode) {
+            _verificationError = 'Invalid code. Please validate your startup with school authorities to get the code.';
+            hasError = true;
+          }
+        } catch (e) {
+          if (_verificationCodeController.text.trim() != 'ALU-9283-2833') {
+            _verificationError = 'Invalid code. Please validate your startup with school authorities to get the code.';
+            hasError = true;
+          }
+        }
+      }
+
       if (hasError) {
         setState(() {});
         return;
@@ -931,6 +964,40 @@ class _EmployerProfileSetupScreenState extends ConsumerState<EmployerProfileSetu
                       ),
                     ],
                   ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Organization Verification Card
+        _buildSectionCard(
+          title: 'Organization Verification',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildLabel('Verification Code'),
+              const Text(
+                'Enter the verification code provided by the ALU Administration to verify your organization.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              ),
+              const SizedBox(height: 12),
+              _buildInputContainer(
+                child: TextField(
+                  controller: _verificationCodeController,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. ALU-9283-2833',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              ),
+              if (_verificationError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _verificationError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ],
             ],

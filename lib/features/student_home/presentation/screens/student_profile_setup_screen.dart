@@ -723,18 +723,30 @@ class _StudentProfileSetupScreenState extends ConsumerState<StudentProfileSetupS
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildLabel('Major / Field of Study'),
-              _buildDropdown(_selectedMajor, ['BSE', 'BEL', 'IBT'], (val) {
-                setState(() {
-                  _selectedMajor = val!;
-                });
-              }),
+              _buildDropdown(
+                _selectedMajor,
+                ['BSE', 'BEL', 'IBT'].contains(_selectedMajor)
+                    ? ['BSE', 'BEL', 'IBT']
+                    : ['BSE', 'BEL', 'IBT', _selectedMajor],
+                (val) {
+                  setState(() {
+                    _selectedMajor = val!;
+                  });
+                },
+              ),
               const SizedBox(height: 16),
               _buildLabel('Expected Graduation'),
-              _buildDropdown(_selectedGradYear, ['2024', '2025', '2026', '2027'], (val) {
-                setState(() {
-                  _selectedGradYear = val!;
-                });
-              }),
+              _buildDropdown(
+                _selectedGradYear,
+                ['2024', '2025', '2026', '2027'].contains(_selectedGradYear)
+                    ? ['2024', '2025', '2026', '2027']
+                    : ['2024', '2025', '2026', '2027', _selectedGradYear],
+                (val) {
+                  setState(() {
+                    _selectedGradYear = val!;
+                  });
+                },
+              ),
             ],
           ),
         ),

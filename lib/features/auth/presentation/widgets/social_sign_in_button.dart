@@ -30,20 +30,23 @@ class SocialSignInButton extends ConsumerWidget {
                 width: 24, 
                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
               )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text(
-                    'Continue with Google',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+            : const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text(
+                      'Continue with Google',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
       ),
     );
