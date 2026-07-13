@@ -54,7 +54,7 @@ class RecommendedJobCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
                 ),
                 child: Center(
                   child: Image.network(
@@ -116,13 +116,17 @@ class RecommendedJobCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                postedTime,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+              Expanded(
+                child: Text(
+                  postedTime,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Row(
                 children: [
                   Icon(statusIcon, size: 14, color: AppColors.textPrimary),

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "245171599369",
+    "project_id": "alu-connect-project",
+    "storage_bucket": "alu-connect-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245171599369:android:5d3a36edd10411b3cfa0d8",
+        "android_client_info": {
+          "package_name": "com.example.aluop_connect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "245171599369-27ubcebl6gf3pdbk3ck7mngsj5nua5p9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.aluop_connect",
+            "certificate_hash": "f3014703ae1e5ba2d850aafa1fc327b502cccd11"
+          }
+        },
+        {
+          "client_id": "245171599369-i2mrkqifs6c85bf60s9j5b0eq8dkblp1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzg-lJD-m7Km_ZZuF9Hw-vejSUjwzF2wE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245171599369-i2mrkqifs6c85bf60s9j5b0eq8dkblp1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
