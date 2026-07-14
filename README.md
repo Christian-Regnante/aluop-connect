@@ -82,3 +82,9 @@ See the detailed tree and layout in [PROJECT_STRUCTURE.md](file:///G:/flutterPro
 * `lib/main.dart` - Entrypoint of the app initializing Firebase configurations and the Riverpod `ProviderScope`.
 * `lib/core/` - Reusable styling tokens, global theme, data models, router configurations, and global firebase services.
 * `lib/features/` - Modules categorized by functional domain containing screen layouts and providers.
+
+---
+
+## Startup Verification Code
+
+ALU-9283-2833
